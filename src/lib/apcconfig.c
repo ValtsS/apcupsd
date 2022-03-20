@@ -39,7 +39,7 @@ char APCCONF[APC_FILENAME_MAX] = SYSCONFDIR APCCONF_FILE;
 
 typedef int (HANDLER) (UPSINFO *, int, const GENINFO *, const char *);
 
-static HANDLER match_int, match_range, match_str;
+static HANDLER match_int, match_range, match_str, match_float;
 static HANDLER match_facility, match_index;
 static HANDLER obsolete;
 
@@ -144,6 +144,7 @@ static const PAIRS table[] = {
    {"BATTERYLEVEL",   match_int,   WHERE(percent),     0},
    {"MINUTES",        match_int,   WHERE(runtime),     0},
    {"KILLDELAY",      match_int,   WHERE(killdelay),   0},
+   {"SHUTDOWNVOLTAGE", match_float,  WHERE(shutdownvoltage),   0  },
 
    /* Configuration parmeters for network information server */
    {"NETSERVER", match_index, WHERE(netstats),   onoroff},
@@ -210,7 +211,19 @@ static int obsolete(UPSINFO *ups, int offset, const GENINFO * junk, const char *
       fprintf(stderr, "error ignored.\n");
       return SUCCESS;
    }
-   
+
+   return FAILURE;
+}
+
+
+static int match_float(UPSINFO *ups, int offset, const GENINFO * junk, const char *v)
+{
+   float x;
+
+   if (sscanf(v, "%f", &x)) {
+      *(float *)AT(ups, offset) = x;
+      return SUCCESS;
+   }
    return FAILURE;
 }
 
@@ -312,7 +325,7 @@ static int match_index(UPSINFO *ups, int offset, const GENINFO * vs, const char 
 
 /*
  * We accept strings containing internal whitespace (in order to support
- * paths with spaces in them) but truncate after '#' since we assume it 
+ * paths with spaces in them) but truncate after '#' since we assume it
  * marks a comment.
  */
 static int match_str(UPSINFO *ups, int offset, const GENINFO * gen, const char *v)
@@ -553,7 +566,7 @@ void init_ups_struct(UPSINFO *ups)
    strlcpy(ups->scriptdir, SYSCONFDIR, sizeof(ups->scriptdir));
    strlcpy(ups->pwrfailpath, PWRFAILDIR, sizeof(ups->pwrfailpath));
    strlcpy(ups->nologinpath, NOLOGDIR, sizeof(ups->nologinpath));
-   
+
    /* Initialize UPS function codes */
    ups->UPS_Cmd[CI_STATUS] = APC_CMD_STATUS;
    ups->UPS_Cmd[CI_LQUAL] = APC_CMD_LQUAL;
@@ -689,8 +702,8 @@ jump_into_the_loop:
 
    // Sanitize cable type & UPS mode. Since UPSTYPE (aka mode) and UPSCABLE
    // can contradict eachother, the rule is that UPSTYPE wins. In all cases
-   // except Dumb and MODBUS we can determine cable type from mode so we ignore 
-   // user's configured UPSCABLE and force it ourselves. In the case of Dumb 
+   // except Dumb and MODBUS we can determine cable type from mode so we ignore
+   // user's configured UPSCABLE and force it ourselves. In the case of Dumb
    // UPSes we just ensure they picked a simple cable type and for MODBUS we
    // ensure they picked a smart (or USB) cable type.
    switch (ups->mode.type)
@@ -715,7 +728,7 @@ jump_into_the_loop:
       // Abort if user specified dumb UPS type with smart cable
       if (ups->cable.type >= CABLE_SMART)
          Error_abort("Invalid cable specified for Dumb UPS\n");
-      break;      
+      break;
    case TEST_UPS:
       // Allow anything in test mode
       break;

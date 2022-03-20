@@ -58,7 +58,7 @@ UPSCOMMANDS ups_event[] = {
 
 /*
  * These messages must be kept in sync with the above array
- * and the defines in include/apc_defines.h 
+ * and the defines in include/apc_defines.h
  */
 UPSCMDMSG event_msg[] = {
    {LOG_CRIT,    "Power failure."},
@@ -91,12 +91,12 @@ void generate_event(UPSINFO *ups, int event)
 
    /*
     * Additional possible actions. For certain, we now do a
-    * shutdown   
+    * shutdown
     */
    switch (event) {
       /*
        * For the following, in addition to the basic,
-       * message logged and executed above, we do a 
+       * message logged and executed above, we do a
        * system shutdown.
        */
    case CMDFAILING:
@@ -171,7 +171,7 @@ static void powerfail(int ok)
 }
 
 /*
- * If called with zero, prevent users from logging in. 
+ * If called with zero, prevent users from logging in.
  * If called with one, allow users to login.
  */
 static void logonfail(UPSINFO *ups, int ok)
@@ -227,7 +227,7 @@ static void do_shutdown(UPSINFO *ups, int cmdtype)
 
    /*
     * On some systems we may stop on the previous
-    * line if a SIGTERM signal is sent to us.        
+    * line if a SIGTERM signal is sent to us.
     */
 
    if (cmdtype == CMDREMOTEDOWN)
@@ -303,44 +303,44 @@ static const char *testresult_to_string(SelfTestResult res)
 /*
  * Carl Lindberg <lindberg@clindberg.org> patch applied 24Dec04
  *
- * The APC network management cards have options to shut down, reboot, or 
- * "sleep" (really just a delayed reboot) the UPS.  For all of these, it 
- * has a "graceful" option, meaning it gives the PowerChute software a 
- * chance to cleanly shutdown the machine before the UPS is shut down.  To 
- * do this, the card sets the ONBATT and LOWBATT statuses at the same 
- * time, waits several minutes, then cuts power.  PowerChute (presumably) 
- * notices this and shuts the machine down, but unfortunately apcupsd did 
+ * The APC network management cards have options to shut down, reboot, or
+ * "sleep" (really just a delayed reboot) the UPS.  For all of these, it
+ * has a "graceful" option, meaning it gives the PowerChute software a
+ * chance to cleanly shutdown the machine before the UPS is shut down.  To
+ * do this, the card sets the ONBATT and LOWBATT statuses at the same
+ * time, waits several minutes, then cuts power.  PowerChute (presumably)
+ * notices this and shuts the machine down, but unfortunately apcupsd did
  * not.
  *
- * The problem happens because in this situation, apcupsd sets the 
- * UPS_prev_battlow status before testing for it.       In the do_action() 
- * function, apcupsd notices the ONBATT status, and uses the 
- * "st_PowerFailure" state to send off an initial power failure event.   
- * After a short delay, do_action() is invoked again. If ONBATT is 
- * still set, the "st_OnBattery" state is used, and the onbattery event 
+ * The problem happens because in this situation, apcupsd sets the
+ * UPS_prev_battlow status before testing for it.       In the do_action()
+ * function, apcupsd notices the ONBATT status, and uses the
+ * "st_PowerFailure" state to send off an initial power failure event.
+ * After a short delay, do_action() is invoked again. If ONBATT is
+ * still set, the "st_OnBattery" state is used, and the onbattery event
  * (among other things) is sent.
  *
- * The test for LOWBATT to see if shutdown is needed is only done in the 
- * st_OnBattery state, and it's done if LOWBATT is set but 
- * UPS_prev_battlow is not set yet.  In normal operation, LOWBATT will 
- * only come on after a period of ONBATT, and this situation works fine.  
- * However, since ONBATT and LOWBATT were set simultaneously, the 
- * UPS_prev_battlow was set the first time through, when the 
- * st_PowerFailure was used, meaning the test for LOWBATT was not 
- * performed.  The second time through in st_OnBattery, UPS_prev_battlow 
- * is already set, meaning apcupsd is assuming that the needed shutdown 
+ * The test for LOWBATT to see if shutdown is needed is only done in the
+ * st_OnBattery state, and it's done if LOWBATT is set but
+ * UPS_prev_battlow is not set yet.  In normal operation, LOWBATT will
+ * only come on after a period of ONBATT, and this situation works fine.
+ * However, since ONBATT and LOWBATT were set simultaneously, the
+ * UPS_prev_battlow was set the first time through, when the
+ * st_PowerFailure was used, meaning the test for LOWBATT was not
+ * performed.  The second time through in st_OnBattery, UPS_prev_battlow
+ * is already set, meaning apcupsd is assuming that the needed shutdown
  * has already been invoked.
  *
- * The code fix just moves setting of the UPS_prev_battlow status to 
- * inside the block that tests for it, ensuring that LOWBATT will never be 
- * ignored.  Clearing the UPS_prev_battlow status remains where it is in 
+ * The code fix just moves setting of the UPS_prev_battlow status to
+ * inside the block that tests for it, ensuring that LOWBATT will never be
+ * ignored.  Clearing the UPS_prev_battlow status remains where it is in
  * the code, and it will always be turned off if LOWBATT is no longer set.
  *
- * After the fix, UPS_prev_battlow is not prematurely set, and apcupsd 
- * catches the signal from the management card to shut down.  I've had the 
- * code in for over a month, and it's worked fine, both from using the 
- * management card and regular pull-the-plug tests as well.   This was 
- * only tested with a serial UPS, but I assume it would be a problem with 
+ * After the fix, UPS_prev_battlow is not prematurely set, and apcupsd
+ * catches the signal from the management card to shut down.  I've had the
+ * code in for over a month, and it's worked fine, both from using the
+ * management card and regular pull-the-plug tests as well.   This was
+ * only tested with a serial UPS, but I assume it would be a problem with
  * USB and SNMP connections as well.
  */
 
@@ -354,12 +354,18 @@ void do_action(UPSINFO *ups)
 
    write_lock(ups);
 
+   Dmsg(1000, "UPS Load: %.2f\n", ups->UPSLoad );
+   Dmsg(1000, "Battery voltage: %.2f\n", ups->BattVoltage);
+   Dmsg(1000, "NomBattV: %.2f\n", ups->nombattv);
+   Dmsg(1000, "ShutdownVoltage: %.2f\n", ups->shutdownvoltage);
+
+
    time(&now);                     /* get current time */
    if (first) {
       first = 0;
       ups->last_time_nologon = ups->last_time_annoy = now;
       ups->last_time_on_line = now;
-      
+
       /*
        * This is cheating slightly. We want to initialize the previous
        * status to zero so all set bits in current status will appear
@@ -501,11 +507,15 @@ void do_action(UPSINFO *ups)
             break;
          }
 
+
          /*
           * Did Battery Charge or Runtime go below percent cutoff?
+          * Or battery voltage went under threshold
           * Normal Power down during Power Failure: Start shutdown timer.
           */
-         if (ups->UPS_Cap[CI_BATTLEV] && ups->BattChg <= ups->percent) {
+         if ((ups->UPS_Cap[CI_BATTLEV] && ups->BattChg <= ups->percent) ||
+         (( (ups->BattVoltage > 0) && ups->shutdownvoltage >= ups->BattVoltage  )))
+         {
             if (!ups->is_shut_load()) {
                Dmsg(100, "CI_BATTLEV shutdown\n");
                ups->set_shut_load();
@@ -628,7 +638,7 @@ void do_action(UPSINFO *ups)
       ups->last_offbatt_time = now;
 
       /*
-       * Sanity check. Sometimes only first power problem trips    
+       * Sanity check. Sometimes only first power problem trips
        * thus last_onbatt_time is not set when we get here.
        */
       if (ups->last_onbatt_time <= 0)

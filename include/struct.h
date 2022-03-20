@@ -258,7 +258,7 @@ class UPSINFO {
    time_t start_shut_lbatt;
    int num_xfers;                  /* number of times on batteries */
    int cum_time_on_batt;           /* total time on batteries since startup */
-   int wait_time;                  /* suggested wait time for drivers in 
+   int wait_time;                  /* suggested wait time for drivers in
                                     * device_check_state() */
 
    /* Items reported by smart UPS */
@@ -352,6 +352,8 @@ class UPSINFO {
 
    int ChangeBattCounter;          /* For UPS_REPLACEBATT, see apcaction.c */
 
+
+   float shutdownvoltage;          /* Battery voltage for powering down threshold */
    pthread_mutex_t mutex;
    int refcnt;                     /* thread attach count */
 
