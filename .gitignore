@@ -13,3 +13,11 @@ platforms/etc/commfailure
 platforms/etc/commok
 platforms/etc/offbattery
 platforms/etc/onbattery
+.deps/
+.obj/
+*.a
+src/apcaccess
+src/apctest
+src/apcupsd
+src/smtp
+doc/*.man.txt
