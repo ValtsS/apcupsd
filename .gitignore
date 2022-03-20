@@ -1,0 +1,15 @@
+autoconf/variables.mak
+config.log
+config.out
+config.status
+examples/safe.apccontrol
+include/apcconfig.h
+platforms/apccontrol
+platforms/debian/apcupsd
+platforms/debian/ups-monitor
+platforms/etc/apcupsd.conf
+platforms/etc/changeme
+platforms/etc/commfailure
+platforms/etc/commok
+platforms/etc/offbattery
+platforms/etc/onbattery
