@@ -354,12 +354,6 @@ void do_action(UPSINFO *ups)
 
    write_lock(ups);
 
-   Dmsg(1000, "UPS Load: %.2f\n", ups->UPSLoad );
-   Dmsg(1000, "Battery voltage: %.2f\n", ups->BattVoltage);
-   Dmsg(1000, "NomBattV: %.2f\n", ups->nombattv);
-   Dmsg(1000, "ShutdownVoltage: %.2f\n", ups->shutdownvoltage);
-
-
    time(&now);                     /* get current time */
    if (first) {
       first = 0;
@@ -514,7 +508,7 @@ void do_action(UPSINFO *ups)
           * Normal Power down during Power Failure: Start shutdown timer.
           */
          if ((ups->UPS_Cap[CI_BATTLEV] && ups->BattChg <= ups->percent) ||
-         (( (ups->BattVoltage > 0) && ups->shutdownvoltage >= ups->BattVoltage  )))
+         (( (ups->UPS_Cap[CI_VBATT] && ups->BattVoltage > 0) && ups->shutdownvoltage >= ups->BattVoltage  )))
          {
             if (!ups->is_shut_load()) {
                Dmsg(100, "CI_BATTLEV shutdown\n");
