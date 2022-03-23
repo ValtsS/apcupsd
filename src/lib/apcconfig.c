@@ -128,6 +128,9 @@ static const PAIRS table[] = {
    {"UPSTYPE",  match_range, WHERE(mode),     types},
    {"DEVICE",   match_str,   WHERE(device),   SIZE(device)},
    {"POLLTIME", match_int,   WHERE(polltime), 0},
+   {"CABLERESISTANCE", match_float,  WHERE(cableresistance),   0  },
+   {"MAXPOWER", match_int,  WHERE(maxpower),   0  },
+
 
    /* Paths */
    {"LOCKFILE",   match_str, WHERE(lockpath),    SIZE(lockpath)},

@@ -75,10 +75,10 @@ SelfTestResult ApcSmartUpsDriver::decode_testresult(char* str)
 {
    /*
     * Responses are:
-    * "OK" - good battery, 
-    * "BT" - failed due to insufficient capacity, 
-    * "NG" - failed due to overload, 
-    * "NO" - no results available (no test performed in last 5 minutes) 
+    * "OK" - good battery,
+    * "BT" - failed due to insufficient capacity,
+    * "NG" - failed due to overload,
+    * "NO" - no results available (no test performed in last 5 minutes)
     */
    if (str[0] == 'O' && str[1] == 'K')
       return TEST_PASSED;
@@ -130,7 +130,7 @@ void ApcSmartUpsDriver::writechar(char a)
    write(_ups->fd, &a, 1);
 }
 
-/********************************************************************* 
+/*********************************************************************
  *
  * Send a charcter to the UPS and get
  * its response. Returns a pointer to the response string.
@@ -234,12 +234,12 @@ int ApcSmartUpsDriver::getline(char *s, int len)
       switch (c) {
          /*
           * Here we can be called in two ways:
-          * 
+          *
           * s == NULL
           *     The shm lock is not held so we must hold it here.
           *
           * s != NULL
-          *     We are called from a routine that have 
+          *     We are called from a routine that have
           *     already held the shm lock so no need to hold it
           *     another time. Simply update the UPS structure
           *     fields and the shm will be updated when
@@ -387,10 +387,10 @@ void ApcSmartUpsDriver::UPSlinkCheck()
          Close();
 
       /*
-       * This sleep should not be necessary since the smart_poll() 
+       * This sleep should not be necessary since the smart_poll()
        * routine normally waits TIMER_FAST (1) seconds. However,
        * in case the serial port is broken and generating spurious
-       * characters, we sleep to reduce CPU consumption. 
+       * characters, we sleep to reduce CPU consumption.
        */
       sleep(1);
 
@@ -416,7 +416,7 @@ void ApcSmartUpsDriver::UPSlinkCheck()
    _linkcheck = false;
 }
 
-/********************************************************************* 
+/*********************************************************************
  *
  *  This subroutine is called to load our shared memory with
  *  information that is changing inside the UPS depending
@@ -526,18 +526,30 @@ bool ApcSmartUpsDriver::read_volatile_data()
       _ups->BattChg = atof(answer);
    }
 
-   /* BATT_VOLTAGE */
-   if (_ups->UPS_Cap[CI_VBATT]) {
-      answer = smart_poll(_ups->UPS_Cmd[CI_VBATT]);
-      Dmsg(80, "Got CI_VBATT: %s\n", answer);
-      _ups->BattVoltage = atof(answer);
-   }
-
    /* UPS_LOAD */
    if (_ups->UPS_Cap[CI_LOAD]) {
       answer = smart_poll(_ups->UPS_Cmd[CI_LOAD]);
       Dmsg(80, "Got CI_LOAD: %s\n", answer);
       _ups->UPSLoad = atof(answer);
+   }
+
+   /* BATT_VOLTAGE */
+   if (_ups->UPS_Cap[CI_VBATT]) {
+      answer = smart_poll(_ups->UPS_Cmd[CI_VBATT]);
+      Dmsg(80, "Got CI_VBATT: %s\n", answer);
+      _ups->BattVoltage = atof(answer);
+
+      if (_ups->is_onbatt())
+         if ((_ups->cableresistance > 0) && ((_ups->UPS_Cap[CI_LOAD])) && (_ups->maxpower > 0)) {
+
+            float current = (_ups->maxpower * _ups->UPSLoad) / 100.0;
+            float drop = current * _ups->cableresistance;
+
+            _ups->BattVoltage -= drop;
+
+            Dmsg(80, "Adjusted CI_BATT: %f  CableResist: %.5f Current: %.1f \n", _ups->BattVoltage, _ups->cableresistance, current);
+         }
+
    }
 
    /* LINE_FREQ */
@@ -619,7 +631,7 @@ bool ApcSmartUpsDriver::read_volatile_data()
    return SUCCESS;
 }
 
-/********************************************************************* 
+/*********************************************************************
  *
  *  This subroutine is called to load our shared memory with
  *  information that is static inside the UPS.        Hence it
@@ -766,7 +778,7 @@ bool ApcSmartUpsDriver::read_static_data()
       answer = smart_poll(_ups->UPS_Cmd[CI_UPSMODEL]);
       if (_ups->UPS_Cmd[CI_UPSMODEL] == APC_CMD_OLDFWREV) {
          /* Derive UPS model from old fw rev */
-         strlcpy(_ups->upsmodel, get_model_from_oldfwrev(answer), 
+         strlcpy(_ups->upsmodel, get_model_from_oldfwrev(answer),
                   sizeof(_ups->upsmodel));
       } else {
          strlcpy(_ups->upsmodel, answer, sizeof(_ups->upsmodel));
@@ -838,7 +850,7 @@ bool ApcSmartUpsDriver::entry_point(int command, void *data)
             } else if (_ups->lastxfer == XFER_SELFTEST) {
                _ups->SelfTest = time(NULL);
                Dmsg(80, "Self Test time: %s", ctime(&_ups->SelfTest));
-            } 
+            }
          }
       }
       break;

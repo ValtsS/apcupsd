@@ -354,6 +354,8 @@ class UPSINFO {
 
 
    float shutdownvoltage;          /* Battery voltage for powering down threshold */
+   float cableresistance;           /* Ohms. In case of long battery cable, there is a voltage drop under load */
+   int   maxpower;                  /*  Max Power in watts */
    pthread_mutex_t mutex;
    int refcnt;                     /* thread attach count */
 
