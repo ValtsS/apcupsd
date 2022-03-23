@@ -456,6 +456,7 @@ void UsbUpsDriver::usb_process_value(int ci, USB_VALUE* uval)
             float current = power / _ups->BattVoltage;
             float drop = current * _ups->cableresistance;
 
+            _ups->voltagedrop = drop;
             _ups->BattVoltage += drop;
 
             Dmsg(200, "Adjusted CI_BATT: %f  CableResist: %.5f Current: %.1f \n", _ups->BattVoltage, _ups->cableresistance, current);

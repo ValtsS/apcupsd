@@ -381,6 +381,12 @@ int output_status(UPSINFO *ups, int sockfd,
    if (ups->UPS_Cap[CI_REVNO])
       s_write(ups, "FIRMWARE : %s\n", ups->firmrev);
 
+
+   s_write(ups, "SHUTDOWNVOLT: %.2f\n", ups->shutdownvoltage);
+   s_write(ups, "CABLERESIST : %.6f\n", ups->cableresistance);
+   s_write(ups, "MAXPOWER    : %d\n", ups->maxpower);
+   s_write(ups, "VOLTDROP    : %.3f\n", ups->voltagedrop);
+
    read_unlock(ups);
 
    /* put the current time in the END APC record */
