@@ -387,6 +387,20 @@ int output_status(UPSINFO *ups, int sockfd,
    s_write(ups, "MAXPOWER    : %d\n", ups->maxpower);
    s_write(ups, "VOLTDROP    : %.3f\n", ups->voltagedrop);
 
+
+   if (ups->UPS_Cap[CI_RUNTIM] && ups->UPS_Cap[CI_LOAD])   {
+
+      if (ups->maxpower > 0) {
+
+         float power = (ups->maxpower * ups->UPSLoad) / 100.0;
+         float current = power / ups->BattVoltage;
+         float tl_Hrs = ups->TimeLeft / 60.0;
+
+         s_write(ups, "AHLEFT : %.1f Ah\n", current * tl_Hrs);
+      }
+   }
+
+
    read_unlock(ups);
 
    /* put the current time in the END APC record */
