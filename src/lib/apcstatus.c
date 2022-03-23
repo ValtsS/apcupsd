@@ -223,7 +223,7 @@ int output_status(UPSINFO *ups, int sockfd,
    }
 
    if (ups->UPS_Cap[CI_VBATT])
-      s_write(ups, "BATTV    : %.1f Volts\n", ups->BattVoltage);
+      s_write(ups, "BATTV    : %.2f Volts\n", ups->BattVoltage);
 
    if (ups->UPS_Cap[CI_FREQ])
       s_write(ups, "LINEFREQ : %.1f Hz\n", ups->LineFreq);
