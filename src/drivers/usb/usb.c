@@ -48,10 +48,10 @@ UsbUpsDriver::UsbUpsDriver(UPSINFO *ups) :
 
 /*
  * This table is used when walking through the USB reports to see
- * what information found in the UPS that we want. If the usage_code 
+ * what information found in the UPS that we want. If the usage_code
  * and the physical code match, then we make an entry in the command
  * index table containing the usage information provided by the UPS
- * as well as the data type from this table. Entries in the table 
+ * as well as the data type from this table. Entries in the table
  * with ci == CI_NONE are not used, for the moment, they are
  * retained just so they are not forgotten.
  */
@@ -156,7 +156,7 @@ const UsbUpsDriver::s_known_info UsbUpsDriver::_known_info[] = {
    {CI_BUPDelayBeforeStartup,   0x00860076, P_ANY,     P_ANY,   T_NONE,     false},  /* BUPDelayBeforeStartup */
    {CI_BUPSelfTest,             0x00860010, P_ANY,     P_ANY,   T_NONE,     false},  /* BUPSelfTest */
    {CI_BUPHibernate,            0x00850058, P_ANY,     P_ANY,   T_NONE,     false},  /* BUPHibernate */
-   
+
    /* END OF TABLE */
    {CI_NONE,                    0x00000000, P_ANY,     P_ANY,   T_NONE,     false}   /* END OF TABLE */
 };
@@ -164,34 +164,34 @@ const UsbUpsDriver::s_known_info UsbUpsDriver::_known_info[] = {
 /*
  * USB USAGE NOTES
  *
- * From the NUT project   
- *    
- *  0x860060 == "441HMLL" - looks like a 'capability' string     
- *           == locale 4, 4 choices, 1 byte each                 
- *           == line sensitivity (high, medium, low, low)        
- *  NOTE! the above does not seem to correspond to my info 
+ * From the NUT project
  *
- *  0x860013 == 44200155090 - capability again                   
- *           == locale 4, 4 choices, 2 bytes, 00, 15, 50, 90     
- *           == minimum charge to return online                  
+ *  0x860060 == "441HMLL" - looks like a 'capability' string
+ *           == locale 4, 4 choices, 1 byte each
+ *           == line sensitivity (high, medium, low, low)
+ *  NOTE! the above does not seem to correspond to my info
  *
- *  0x860062 == D43133136127130                                  
- *           == locale D, 4 choices, 3 bytes, 133, 136, 127, 130 
- *           == high transfer voltage                            
+ *  0x860013 == 44200155090 - capability again
+ *           == locale 4, 4 choices, 2 bytes, 00, 15, 50, 90
+ *           == minimum charge to return online
  *
- *  0x860064 == D43103100097106                                  
- *           == locale D, 4 choices, 3 bytes, 103, 100, 097, 106 
- *           == low transfer voltage                             
+ *  0x860062 == D43133136127130
+ *           == locale D, 4 choices, 3 bytes, 133, 136, 127, 130
+ *           == high transfer voltage
  *
- *  0x860066 == 441HMLL (see 860060)                                   
+ *  0x860064 == D43103100097106
+ *           == locale D, 4 choices, 3 bytes, 103, 100, 097, 106
+ *           == low transfer voltage
  *
- *  0x860074 == 4410TLN                                          
- *           == locale 4, 4 choices, 1 byte, 0, T, L, N          
- *           == alarm setting (5s, 30s, low battery, none)       
+ *  0x860066 == 441HMLL (see 860060)
  *
- *  0x860077 == 443060180300600                                  
- *           == locale 4, 4 choices, 3 bytes, 060,180,300,600    
- *           == wake-up delay (after power returns)              
+ *  0x860074 == 4410TLN
+ *           == locale 4, 4 choices, 1 byte, 0, T, L, N
+ *           == alarm setting (5s, 30s, low battery, none)
+ *
+ *  0x860077 == 443060180300600
+ *           == locale 4, 4 choices, 3 bytes, 060,180,300,600
+ *           == wake-up delay (after power returns)
  *
  *
  * From MGE -- MGE specific items
@@ -237,7 +237,7 @@ bool UsbUpsDriver::get_capabilities()
 {
    int rc;
 
-   /* Run platform-specific capabilities code */   
+   /* Run platform-specific capabilities code */
    rc = pusb_ups_get_capabilities();
    if (!rc)
       return 0;
@@ -433,12 +433,6 @@ void UsbUpsDriver::usb_process_value(int ci, USB_VALUE* uval)
       Dmsg(200, "BattCharge = %d\n", (int)_ups->BattChg);
       break;
 
-   /* BATT_VOLTAGE */
-   case CI_VBATT:
-      _ups->BattVoltage = uval->dValue;
-      Dmsg(200, "BattVoltage = %d\n", (int)_ups->BattVoltage);
-      break;
-
    /* UPS_LOAD */
    case CI_LOAD:
       _ups->UPSLoad = uval->dValue;
@@ -450,6 +444,24 @@ void UsbUpsDriver::usb_process_value(int ci, USB_VALUE* uval)
       _ups->LineFreq = uval->dValue;
       Dmsg(200, "LineFreq = %d\n", (int)_ups->LineFreq);
       break;
+
+   /* BATT_VOLTAGE */
+   case CI_VBATT:
+      _ups->BattVoltage = uval->dValue;
+      Dmsg(200, "BattVoltage = %d\n", (int)_ups->BattVoltage);
+      if (_ups->is_onbatt())
+         if ((_ups->cableresistance > 0) && ((_ups->UPS_Cap[CI_LOAD])) && (_ups->maxpower > 0)) {
+
+            float power = (_ups->maxpower * _ups->UPSLoad) / 100.0;
+            float current = power / _ups->BattVoltage;
+            float drop = current * _ups->cableresistance;
+
+            _ups->BattVoltage += drop;
+
+            Dmsg(200, "Adjusted CI_BATT: %f  CableResist: %.5f Current: %.1f \n", _ups->BattVoltage, _ups->cableresistance, current);
+         }
+      break;
+
 
    /* UPS_RUNTIME_LEFT */
    case CI_RUNTIM:
@@ -463,13 +475,13 @@ void UsbUpsDriver::usb_process_value(int ci, USB_VALUE* uval)
       Dmsg(200, "ITemp = %d\n", (int)_ups->UPSTemp);
       break;
 
-   /*  Humidity percentage */ 
+   /*  Humidity percentage */
    case CI_HUMID:
       _ups->humidity = uval->dValue;
       Dmsg(200, "Humidity = %d\n", (int)_ups->humidity);
       break;
 
-   /*  Ambient temperature */ 
+   /*  Ambient temperature */
    case CI_ATEMP:
       _ups->ambtemp = uval->dValue - 273.15;      /* convert to deg C. */;
       Dmsg(200, "ATemp = %d\n", (int)_ups->ambtemp);
@@ -740,7 +752,7 @@ bool UsbUpsDriver::usb_update_value(int ci)
 
    if (!usb_get_value(ci, &uval))
       return false;
-      
+
    usb_process_value(ci, &uval);
    return true;
 }
@@ -801,7 +813,7 @@ bool UsbUpsDriver::read_volatile_data()
 
    Dmsg(200, "Enter usb_ups_read_volatile_data\n");
 
-   /* 
+   /*
     * If we are not on batteries, update this maximum once every
     * MAX_VOLATILE_POLL_RATE seconds. This prevents flailing around
     * too much if the UPS state is rapidly changing while on mains.
@@ -828,7 +840,7 @@ bool UsbUpsDriver::read_volatile_data()
 }
 
 /*
- * Read UPS info that remains unchanged -- e.g. transfer voltages, 
+ * Read UPS info that remains unchanged -- e.g. transfer voltages,
  * shutdown delay, etc.
  *
  * This routine is called once when apcupsd is starting.
@@ -894,9 +906,9 @@ bool UsbUpsDriver::kill_power()
    }
 
    /*
-    * BackUPS Pro uses an enumerated setting (reads percent in 
+    * BackUPS Pro uses an enumerated setting (reads percent in
     * ASCII). The value advances to the next higher setting by
-    * writing a '1' and to the next lower setting when writing a 
+    * writing a '1' and to the next lower setting when writing a
     * '2'. The value wraps around when advanced past the max or min
     * setting.
     *
@@ -945,8 +957,8 @@ bool UsbUpsDriver::kill_power()
 
    /*
     * BackUPS Pro uses an enumerated setting (reads seconds in ASCII).
-    * The value advances to the next higher setting by writing a '1' 
-    * and to the next lower setting when writing a '2'. The value 
+    * The value advances to the next higher setting by writing a '1'
+    * and to the next lower setting when writing a '2'. The value
     * wraps around when advanced past the max or min setting.
     *
     * We walk the setting down to the minimum of 60.
@@ -980,7 +992,7 @@ bool UsbUpsDriver::kill_power()
    /*
     * BackUPS hibernate
     *
-    * Alternately, if APCDelayBeforeShutdown is available, setting 
+    * Alternately, if APCDelayBeforeShutdown is available, setting
     * it will start a countdown after which the UPS will hibernate.
     */
    if (!hibernate && UPS_HAS_CAP(CI_APCDelayBeforeShutdown)) {
@@ -998,8 +1010,8 @@ bool UsbUpsDriver::kill_power()
     * SmartUPS hibernate
     *
     * If both DWAKE and DelayBeforeShutdown are available, trigger
-    * a hibernate by writing DWAKE a few seconds longer than 
-    * DelayBeforeShutdown. ORDER IS IMPORTANT. The write to 
+    * a hibernate by writing DWAKE a few seconds longer than
+    * DelayBeforeShutdown. ORDER IS IMPORTANT. The write to
     * DelayBeforeShutdown starts both timers ticking down and the
     * UPS will hibernate when DelayBeforeShutdown hits zero.
     */
@@ -1014,7 +1026,7 @@ bool UsbUpsDriver::kill_power()
                SHUTDOWN_DELAY, func)) {
             Dmsg(000, "Kill power function \"%s\" failed.\n", func);
             /* reset prev timer */
-            write_int_to_ups(CI_DWAKE, -1, "CI_DWAKE");  
+            write_int_to_ups(CI_DWAKE, -1, "CI_DWAKE");
          } else {
             hibernate = 1;
          }
@@ -1024,13 +1036,13 @@ bool UsbUpsDriver::kill_power()
    /*
     * BackUPS Pro shutdown
     *
-    * Here we see the BackUPS Pro further distinguish itself as 
+    * Here we see the BackUPS Pro further distinguish itself as
     * having the most broken firmware of any APC product yet. We have
     * to trigger two magic boolean flags using APC custom usages.
-    * First we hit BUPHibernate and follow that with a write to 
+    * First we hit BUPHibernate and follow that with a write to
     * BUPSelfTest (!).
     *
-    * Credit goes to John Zielinski <grim@undead.cc> for figuring 
+    * Credit goes to John Zielinski <grim@undead.cc> for figuring
     * this out.
     */
    if (!hibernate && UPS_HAS_CAP(CI_BUPHibernate) && UPS_HAS_CAP(CI_BUPSelfTest)) {
@@ -1050,21 +1062,21 @@ bool UsbUpsDriver::kill_power()
    }
 
    /*
-    * All UPSes tested so far are covered by one of the above cases. 
+    * All UPSes tested so far are covered by one of the above cases.
     * However, there are a some other ways to hibernate.
     */
 
    /*
     * Misc method A
     *
-    * Writing CI_DelayBeforeReboot starts a countdown timer, after 
+    * Writing CI_DelayBeforeReboot starts a countdown timer, after
     * which the UPS will hibernate. If utility power is out, the UPS
     * will stay hibernating until power is restored. SmartUPSes seem
     * to support this method, but PowerChute uses the dual countdown
     * method above, so we prefer that one. UPSes seem to round the
     * value up to 90 seconds if it is any lower. Note that the
     * behavior described here DOES NOT comply with the standard set
-    * out in the HID Usage Tables for Power Devices spec. 
+    * out in the HID Usage Tables for Power Devices spec.
     */
    if (!hibernate && UPS_HAS_CAP(CI_DelayBeforeReboot)) {
       Dmsg(000, "UPS appears to support DelayBeforeReboot style hibernate.\n");
@@ -1081,8 +1093,8 @@ bool UsbUpsDriver::kill_power()
     *
     * We can set CI_APCForceShutdown to true (it's a boolean flag).
     * We have no control over how long the UPS waits before turning
-    * off. Experimentally it seems to be about 60 seconds. Some 
-    * BackUPS models support this in addition to the preferred 
+    * off. Experimentally it seems to be about 60 seconds. Some
+    * BackUPS models support this in addition to the preferred
     * BackUPS method above. It's included here "just in case".
     */
    if (!hibernate && UPS_HAS_CAP(CI_APCForceShutdown)) {
@@ -1103,7 +1115,7 @@ bool UsbUpsDriver::kill_power()
    /*
     * Workaround for UPS firmware bug. Some UPSes have an issue where, after
     * killpower completes and utility power is restored, they appear to re-
-    * execute the killpower command when the USB is enumerated again. This 
+    * execute the killpower command when the USB is enumerated again. This
     * happens repeatedly until the USB is disconnected.
     *
     * The "Back-UPS RS1000G FW:868.L3 -P.D USB FW:L3 -P" is known to have this
@@ -1130,7 +1142,7 @@ bool UsbUpsDriver::shutdown()
    /*
     * Complete shutdown
     *
-    * This method turns off the UPS off completely after a given delay. 
+    * This method turns off the UPS off completely after a given delay.
     * The only way to power the UPS back on is to manually hit the
     * power button.
     */
@@ -1247,9 +1259,9 @@ bool UsbUpsDriver::usb_report_event(int ci, USB_VALUE *uval)
 
 /* Constructor for s_usb_value */
 UsbUpsDriver::s_usb_value::s_usb_value() :
-   value_type(V_DEFAULT), 
-   dValue(0), 
-   iValue(0), 
+   value_type(V_DEFAULT),
+   dValue(0),
+   iValue(0),
    UnitName("Uninitialized")
 {
    strlcpy(sValue, "Uninitialized", sizeof(sValue));
