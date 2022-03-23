@@ -542,10 +542,11 @@ bool ApcSmartUpsDriver::read_volatile_data()
       if (_ups->is_onbatt())
          if ((_ups->cableresistance > 0) && ((_ups->UPS_Cap[CI_LOAD])) && (_ups->maxpower > 0)) {
 
-            float current = (_ups->maxpower * _ups->UPSLoad) / 100.0;
+            float power = (_ups->maxpower * _ups->UPSLoad) / 100.0;
+            float current = power / _ups->BattVoltage;
             float drop = current * _ups->cableresistance;
 
-            _ups->BattVoltage -= drop;
+            _ups->BattVoltage += drop;
 
             Dmsg(80, "Adjusted CI_BATT: %f  CableResist: %.5f Current: %.1f \n", _ups->BattVoltage, _ups->cableresistance, current);
          }
