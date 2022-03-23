@@ -538,6 +538,7 @@ bool ApcSmartUpsDriver::read_volatile_data()
       answer = smart_poll(_ups->UPS_Cmd[CI_VBATT]);
       Dmsg(80, "Got CI_VBATT: %s\n", answer);
       _ups->BattVoltage = atof(answer);
+      _ups->voltagedrop = 0;
 
       if (_ups->is_onbatt())
          if ((_ups->cableresistance > 0) && ((_ups->UPS_Cap[CI_LOAD])) && (_ups->maxpower > 0)) {

@@ -449,6 +449,7 @@ void UsbUpsDriver::usb_process_value(int ci, USB_VALUE* uval)
    case CI_VBATT:
       _ups->BattVoltage = uval->dValue;
       Dmsg(200, "BattVoltage = %d\n", (int)_ups->BattVoltage);
+      _ups->voltagedrop = 0;
       if (_ups->is_onbatt())
          if ((_ups->cableresistance > 0) && ((_ups->UPS_Cap[CI_LOAD])) && (_ups->maxpower > 0)) {
 
